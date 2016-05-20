@@ -45,6 +45,16 @@ js = NpmBundle(
     },
 )
 
+jsteam = NpmBundle(
+    "node_modules/jquery/jquery.min.js",
+    "node_modules/bootstrap3/dist/js/bootstrap.min.js",
+    npm={
+         "jquery": "~1.9.1",
+        "bootstrap3": "~3.3.5"
+    },
+    output="gen/communities_team.%(version)s.js"
+)
+
 jsselect = NpmBundle(
     "node_modules/jquery/jquery.min.js",
     "node_modules/bootstrap3/dist/js/bootstrap.min.js",
