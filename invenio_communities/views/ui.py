@@ -24,6 +24,7 @@
 
 """Invenio module that adds support for communities."""
 
+
 import copy
 from collections import namedtuple
 from functools import partial, wraps
@@ -32,7 +33,7 @@ from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babelex import gettext as _
 from flask_login import current_user, login_required
-from flask_principal import ActionNeed
+from flask_principal import ActionNeed, UserNeed
 from invenio_db import db
 from invenio_indexer.api import RecordIndexer
 from invenio_pidstore.resolver import Resolver
@@ -41,6 +42,8 @@ from invenio_records.api import Record
 from invenio_access import DynamicPermission
 from invenio_access.models import ActionUsers
 from invenio_accounts.models import User
+from invenio_mail.api import TemplatedMessage
+
 from invenio_communities.errors import (InclusionRequestExistsError,
                                         InclusionRequestObsoleteError)
 from invenio_communities.forms import (CommunityForm,
@@ -548,9 +551,39 @@ def suggest():
                   u"to the {} {}.".format(
                                 current_app.config["COMMUNITIES_NAME"],
                                 community.title))
+            send_email_suggest(record, community)
     db.session.commit()
     RecordIndexer().index_by_id(record.id)
     return redirect(url)
+
+
+def send_email_suggest(record, community):
+    """
+    Send email to curators.
+    TODO: must be done through signal later
+    """
+    class FakeIdentity(object):
+        """Fake class to test DynamicPermission."""
+        def __init__(self, *provides):
+            self.provides = set(provides)
+
+    permission = _get_permission("communities-curate", community)
+    users = User.query.filter_by(active=True).all()
+    recipients = [u for u in users \
+                  if permission.allows(FakeIdentity(UserNeed(u.id)))]
+    msg = TemplatedMessage(template_body="tind_mail/communities_submition.txt",
+                           template_html="tind_mail/communities_submition.html",
+                           subject="New submition to your community",
+                           recipients=recipients,
+                           ctx={
+                                "logo": current_app.config["THEME_LOGO"],
+                                "user": "Curators",
+                                "sender": "SysAdmin",
+                                "record": record,
+                                "community": community,
+                                "submitter": current_user.email
+                           })
+    current_app.extensions["mail"].send(msg)
 
 
 @blueprint.route('/<string:community_id>/team/')
