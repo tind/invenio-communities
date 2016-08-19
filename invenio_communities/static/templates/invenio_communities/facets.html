@@ -1,0 +1,44 @@
+<div ng-init="order = {'volume': {'title': 'Volume', subfacetorder:{'issue':{'title':'Issue'}}}}">
+<!-- Facets -->
+  <div ng-if="vm.invenioSearchResults.aggregations[key].buckets.length" ng-repeat="(key, obj) in order">
+    <div class="facet-group">
+    <h3>{{ obj.title }}</h3>
+      <ul class="list-unstyled terms" ng-controller="FacetsShowMoreController">
+        <li ng-repeat="item in vm.invenioSearchResults.aggregations[key].buckets | limitTo: facetResults">
+          <div class="checkbox checkbox-info checkbox-circle">
+          <input id="checkbox-{{item.key}}" class="include-facet" type="checkbox" ng-checked="handler[key].indexOf(item.key) > -1" ng-click="handleClick(key, item.key)" />
+          <label for="checkbox-{{item.key}}">
+            <span class="facet-title-truncate">{{ item.key }}</span>
+            <span class="facet-label pull-right term-count">{{ item.doc_count }}</span>
+          </label>
+          </div>
+<!-- SubFacets -->
+            <div ng-if="item[subkey].buckets.length" ng-repeat="(subkey, subobj) in obj.subfacetorder">
+            <div class="facet-group">
+            <h4>{{ subobj.title }}</h4>
+              <ul class="list-unstyled terms" ng-controller="FacetsShowMoreController">
+                <li ng-repeat="subitem in item[subkey].buckets | limitTo: facetResults">
+                  <div class="checkbox checkbox-info checkbox-circle">
+                  <input id="checkbox-{{subitem.key}}" class="include-facet" type="checkbox" ng-checked="handler[subkey].indexOf(subitem.key) > -1" ng-click="!((handler[key].indexOf(item.key) > -1) !== (handler[subkey].indexOf(subitem.key) > -1)) && handleClick(key, item.key); handleClick(subkey, subitem.key)" />
+                  <label for="checkbox-{{subitem.key}}">
+                    <span class="facet-title-truncate">{{ subitem.key }}</span>
+                    <span class="facet-label pull-right term-count">{{ subitem.doc_count }}</span>
+                  </label>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <hr ng-if="!$last">
+          </div>
+        </li>
+        <div ng-init="initialFacets=facetResults" class="facets-show-more" ng-show="vm.invenioSearchResults.aggregations[key].buckets.length > facetResults">
+          <a ng-click="moreFacetResults()">Show {{calculateStep(key)}} more &gt;&gt;</a>
+        </div>
+        <div class="facets-show-less" ng-show="facetResults > initialFacets">
+          <a ng-click="lessFacetResults()">Show less</a>
+        </div>
+      </ul>
+    </div>
+    <hr ng-if="!$last">
+  </div>
+</div>

@@ -33,6 +33,15 @@
 {% include "invenio_search_ui/header.html" %}
 {%- endblock page_header %}
 
+
+{%- block search_facets %}
+<div class="col-md-3 col-xs-12">
+  <invenio-search-facets
+   template="{{ url_for('static', filename='templates/invenio_communities/facets.html') }}">
+  </invenio-search-facets>
+</div>
+{%- endblock search_facets %}
+
 {% block page_body %}
 <div class="communities">
   {{ community_header(community) }}
