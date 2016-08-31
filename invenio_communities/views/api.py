@@ -26,7 +26,9 @@
 
 from __future__ import absolute_import, print_function
 
-from flask import Blueprint, abort
+import json
+
+from flask import Blueprint, abort, current_app, request
 from flask_principal import ActionNeed
 from invenio_rest import ContentNegotiatedMethodView
 from webargs import fields
@@ -39,6 +41,9 @@ from invenio_communities.links import default_links_item_factory, \
 from invenio_communities.models import Community
 from invenio_communities.proxies import current_permission_factory
 from invenio_communities.serializers import community_response
+from invenio_communities.facets import default_facets_factory
+
+from invenio_search import RecordsSearch
 
 blueprint = Blueprint(
     'invenio_communities_rest',
@@ -206,6 +211,34 @@ class CommunityDetailsResource(ContentNegotiatedMethodView):
         response.set_etag(etag)
         return response
 
+
+class CommunitiesFacets(ContentNegotiatedMethodView):
+    """
+    Get facets for all communities
+    """
+
+    def __init__(self, serializers=None, *args, **kwargs):
+        """Constructor."""
+        super(CommunitiesFacets, self).__init__(
+            serializers,
+            *args,
+            **kwargs
+        )
+
+
+    def facet_search_factory(self, search):
+        search, urlkwargs = default_facets_factory(search, 'records')
+        return search, urlkwargs
+
+
+    def get(self):
+        search = RecordsSearch().params(version=True)
+        search, urlkwargs = self.facet_search_factory(search)
+        search_result = search.execute().to_dict()['aggregations']
+
+        return search_result
+
+
 serializers = {'application/json': community_response}
 
 
@@ -224,6 +257,17 @@ blueprint.add_url_rule(
     '/<string:community_id>',
     view_func=CommunityDetailsResource.as_view(
         'communities_item',
+        serializers=serializers,
+        default_media_type='application/json',
+    ),
+    methods=['GET']
+)
+
+
+blueprint.add_url_rule(
+    '/facets',
+    view_func=CommunitiesFacets.as_view(
+        'communities_facets',
         serializers=serializers,
         default_media_type='application/json',
     ),

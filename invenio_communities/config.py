@@ -112,3 +112,25 @@ COMMUNITIES_TEAM_ADD_TEMPLATE = "invenio_communities/team-add.html"
 COMMUNITIES_URL_COMMUNITY_VIEW = \
     '{protocol}://{host}/communities/{community_id}/'
 """String pattern to generate the URL for the view of a community."""
+
+COMMUNITIES_FACETS = dict(
+    records=dict(
+        aggs=dict(
+            communities=dict(
+                terms=dict(
+                    field=COMMUNITIES_RECORD_KEY,
+                ),
+            ),
+        ),
+        filters=dict(
+            exists=dict(
+                field=COMMUNITIES_RECORD_KEY,
+            ),
+            missing=dict(
+                field=COMMUNITIES_RECORD_KEY,
+                existence=False,
+                null_value=False,
+            ),
+        ),
+    ),
+)

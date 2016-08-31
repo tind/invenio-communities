@@ -61,3 +61,17 @@ def default_links_pagination_factory(page, urlkwargs):
                                 **urlkwargs)
 
     return links
+
+def default_links_facets_factory():
+    """Factory for record links generation."""
+    return dict(
+        self=url_for(
+            '.communities_facets', _external=True),
+        html=current_app.config.get(
+            'COMMUNITIES_URL_COMMUNITY_VIEW',
+            '{protocol}://{host}/communities/facets/'
+        ).format(
+            protocol=request.environ['wsgi.url_scheme'],
+            host=request.environ['HTTP_HOST']
+        )
+    )

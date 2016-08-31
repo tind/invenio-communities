@@ -69,6 +69,9 @@ def community_responsify(schema_class, mimetype):
             response_data = schema_class(
                 context=dict(item_links_factory=links_item_factory)
             ).dump(data).data
+        elif links_item_factory is None:
+            last_modified = None
+            response_data = data
         else:
             last_modified = None
             response_data = schema_class(
