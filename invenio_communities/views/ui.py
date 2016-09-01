@@ -53,6 +53,8 @@ from invenio_communities.models import (Community,
 from invenio_communities.proxies import current_permission_factory, needs
 from invenio_communities.utils import Pagination, render_template_to_string
 
+from .api import CommunitiesFacets
+
 blueprint = Blueprint(
     'invenio_communities',
     __name__,
@@ -189,6 +191,11 @@ def index():
     page = max(page, 1)
     p = Pagination(page, per_page, len(communities))
 
+    try:
+        facets = CommunitiesFacets().get()['communities']['buckets']
+    except KeyError:
+        facets = None
+
     ctx.update({
         'r_from': max(p.per_page * (p.page - 1), 0),
         'r_to': min(p.per_page * p.page, p.total_count),
@@ -197,11 +204,12 @@ def index():
         'form': form,
         'title': _('Communities'),
         'communities': communities[per_page * (page - 1):per_page * page],
-        'featured_community': featured_community
+        'featured_community': featured_community,
+        'facets': facets
     })
 
     return render_template(
-        "invenio_communities/index.html",
+        current_app.config['COMMUNITIES_INDEX_TEMPLATE'],
         **ctx
     )
 

@@ -101,6 +101,8 @@ COMMUNITIES_JSTEMPLATE_RESULTS_CURATE = \
 
 COMMUNITIES_COMMUNITY_TEMPLATE = "invenio_communities/community_base.html"
 
+COMMUNITIES_INDEX_TEMPLATE = "invenio_communities/index.html"
+
 COMMUNITIES_CURATE_TEMPLATE = "invenio_communities/curate.html"
 
 COMMUNITIES_TEAM_TEMPLATE = "invenio_communities/team-index.html"
