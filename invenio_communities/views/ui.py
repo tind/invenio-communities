@@ -191,10 +191,12 @@ def index():
     page = max(page, 1)
     p = Pagination(page, per_page, len(communities))
 
+    facets = {}
+
     try:
         facets = CommunitiesFacets().get()['communities']['buckets']
     except KeyError:
-        facets = None
+        pass
 
     ctx.update({
         'r_from': max(p.per_page * (p.page - 1), 0),
@@ -245,10 +247,22 @@ def generic_item(community, template, **extra_ctx):
     """Index page with uploader and list of existing depositions."""
     # Check existence of community
     ctx = mycommunities_ctx()
+
+    community_facets = {}
+
+    try:
+        all_facets = CommunitiesFacets().get()['communities']['buckets']
+        for facet in all_facets:
+            if facet['key'] == community.id:
+                community_facets = facet
+    except KeyError:
+        pass
+
     ctx.update({
         'is_owner': community.id_user == current_user.get_id(),
         'community': community,
         'detail': True,
+        'facets': community_facets
     })
     ctx.update(extra_ctx)
 
