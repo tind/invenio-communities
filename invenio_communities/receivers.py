@@ -30,13 +30,6 @@ from flask import current_app
 from invenio_db import db
 
 from .models import InclusionRequest
-from .utils import send_community_request_email
-
-
-def new_request(sender, request=None, notify=True, **kwargs):
-    """New request for inclusion."""
-    if current_app.config['COMMUNITIES_MAIL_ENABLED'] and notify:
-        send_community_request_email(request)
 
 
 def inject_provisional_community(sender, json=None, record=None, index=None,

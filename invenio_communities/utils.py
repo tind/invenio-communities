@@ -30,11 +30,13 @@ from io import SEEK_END, SEEK_SET
 from math import ceil
 from uuid import UUID
 
-from flask import current_app, url_for
+from flask import current_app
+
 from invenio_db import db
 from invenio_files_rest.errors import FilesException
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
-from invenio_records.api import Record
+
+from invenio_communities.proxies import current_permission_factory, needs
 
 
 class Pagination(object):
@@ -140,84 +142,44 @@ def initialize_communities_bucket():
         db.session.commit()
 
 
-def format_request_email_templ(increq, template, **ctx):
-    """Format the email message element for inclusion request notification.
-
-    Formats the message according to the provided template file, using
-    some default fields from 'increq' object as default context.
-    Arbitrary context can be provided as keywords ('ctx'), and those will
-    not be overwritten by the fields from 'increq' object.
-
-    :param increq: Inclusion request object for which the request is made.
-    :type increq: `invenio_communities.models.InclusionRequest`
-    :param template: relative path to jinja template.
-    :type template: str
-    :param ctx: Optional extra context parameters passed to formatter.
-    :type ctx: dict.
-    :returns: Formatted message.
-    :rtype: str
+def _get_permission(action, community=""):
     """
-    # Add minimal information to the contex (without overwriting).
-    curate_link = url_for('invenio_communities.curate',
-                          community_id=increq.community.id)
-
-    min_ctx = dict(
-        record=Record.get_record(increq.record.id),
-        requester=increq.user,
-        community=increq.community,
-        curate_link=curate_link,
-    )
-    for k, v in min_ctx.items():
-        if k not in ctx:
-            ctx[k] = v
-
-    msg_element = render_template_to_string(template, **ctx)
-    return msg_element
-
-
-def format_request_email_title(increq, **ctx):
-    """Format the email message title for inclusion request notification.
-
-    :param increq: Inclusion request object for which the request is made.
-    :type increq: `invenio_communities.models.InclusionRequest`
-    :param ctx: Optional extra context parameters passed to formatter.
-    :type ctx: dict.
-    :returns: Email message title.
-    :rtype: str
+    :param action: the action to execute (i.e. "communities-read")
+    :type action: str
+    :param community: the community
+    :type community: str
+    :returns: permission the permission associated to this action with
+        this community as a parameter
     """
-    template = current_app.config["COMMUNITIES_REQUEST_EMAIL_TITLE_TEMPLATE"],
-    return format_request_email_templ(increq, template, **ctx)
+    if community:
+        return current_permission_factory[action](community)
+    return current_permission_factory[action]()
 
 
-def format_request_email_body(increq, **ctx):
-    """Format the email message body for inclusion request notification.
-
-    :param increq: Inclusion request object for which the request is made.
-    :type increq: `invenio_communities.models.InclusionRequest`
-    :param ctx: Optional extra context parameters passed to formatter.
-    :type ctx: dict.
-    :returns: Email message body.
-    :rtype: str
+def _get_permissions(remove_forbidden=True, sorted=True):
     """
-    template = current_app.config["COMMUNITIES_REQUEST_EMAIL_BODY_TEMPLATE"],
-    return format_request_email_templ(increq, template, **ctx)
+    returns the list of all the permissions associated with the communities
+    :param remove_forbidden: tells if we should remove special actions
+        that should be accessible by the administrators only, like create and
+        delete communities.
+    :param sorted: tells if the list should be alphabetically sorted
+    """
+    actions = list(current_permission_factory)
+    if remove_forbidden:
+        actions.remove("communities-admin")
+    if sorted:
+        actions.sort()
+    return actions
 
 
-def send_community_request_email(increq):
-    """Signal for sending emails after community inclusion request."""
-    from flask_mail import Message
-    from invenio_mail.tasks import send_email
-
-    msg_body = format_request_email_body(increq)
-    msg_title = format_request_email_title(increq)
-
-    sender = current_app.config['COMMUNITIES_REQUEST_EMAIL_SENDER']
-
-    msg = Message(
-        msg_title,
-        sender=sender,
-        recipients=[increq.community.owner.email, ],
-        body=msg_body
-    )
-
-    send_email.delay(msg.__dict__)
+def _get_needs(action, community=""):
+    """
+    :param action: the action to execute (i.e. "communities-read")
+    :type action: str
+    :param community: the community
+    :type community: str
+    :returns: the need associated with the action
+    """
+    if community:
+        return needs[action](community)
+    return needs[action]()

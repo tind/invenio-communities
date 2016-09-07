@@ -33,7 +33,7 @@ from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babelex import gettext as _
 from flask_login import current_user, login_required
-from flask_principal import ActionNeed, UserNeed
+from flask_principal import ActionNeed
 from invenio_db import db
 from invenio_indexer.api import RecordIndexer
 from invenio_pidstore.resolver import Resolver
@@ -42,7 +42,6 @@ from invenio_records.api import Record
 from invenio_access import DynamicPermission
 from invenio_access.models import ActionUsers
 from invenio_accounts.models import User
-from invenio_mail.api import TemplatedMessage
 
 from invenio_communities.errors import (InclusionRequestExistsError,
                                         InclusionRequestObsoleteError)
@@ -53,8 +52,11 @@ from invenio_communities.forms import (CommunityForm,
 from invenio_communities.models import (Community,
                                         FeaturedCommunity,
                                         InclusionRequest)
-from invenio_communities.proxies import current_permission_factory, needs
-from invenio_communities.utils import Pagination, render_template_to_string
+from invenio_communities.utils import (_get_permission,
+                                       _get_permissions,
+                                       _get_needs,
+                                       Pagination,
+                                       render_template_to_string)
 
 from .api import CommunitiesFacets
 
@@ -65,49 +67,6 @@ blueprint = Blueprint(
     template_folder='../templates',
     static_folder='../static',
 )
-
-
-def _get_needs(action, community=""):
-    """
-    :param action: the action to execute (i.e. "communities-read")
-    :type action: str
-    :param community: the community
-    :type community: str
-    :returns: the need associated with the action
-    """
-    if community:
-        return needs[action](community)
-    return needs[action]()
-
-
-def _get_permission(action, community=""):
-    """
-    :param action: the action to execute (i.e. "communities-read")
-    :type action: str
-    :param community: the community
-    :type community: str
-    :returns: permission the permission associated to this action with
-        this community as a parameter
-    """
-    if community:
-        return current_permission_factory[action](community)
-    return current_permission_factory[action]()
-
-
-def _get_permissions(remove_forbidden=True, sorted=True):
-    """
-    returns the list of all the permissions associated with the communities
-    :param remove_forbidden: tells if we should remove special actions
-        that should be accessible by the administrators only, like create and
-        delete communities.
-    :param sorted: tells if the list should be alphabetically sorted
-    """
-    actions = list(current_permission_factory)
-    if remove_forbidden:
-        actions.remove("communities-admin")
-    if sorted:
-        actions.sort()
-    return actions
 
 
 def pass_community(f):
@@ -551,39 +510,9 @@ def suggest():
                   u"to the {} {}.".format(
                                 current_app.config["COMMUNITIES_NAME"],
                                 community.title))
-            send_email_suggest(record, community)
     db.session.commit()
     RecordIndexer().index_by_id(record.id)
     return redirect(url)
-
-
-def send_email_suggest(record, community):
-    """
-    Send email to curators.
-    TODO: must be done through signal later
-    """
-    class FakeIdentity(object):
-        """Fake class to test DynamicPermission."""
-        def __init__(self, *provides):
-            self.provides = set(provides)
-
-    permission = _get_permission("communities-curate", community)
-    users = User.query.filter_by(active=True).all()
-    recipients = [u for u in users \
-                  if permission.allows(FakeIdentity(UserNeed(u.id)))]
-    msg = TemplatedMessage(template_body="tind_mail/communities_submition.txt",
-                           template_html="tind_mail/communities_submition.html",
-                           subject="New submition to your community",
-                           recipients=recipients,
-                           ctx={
-                                "logo": current_app.config["THEME_LOGO"],
-                                "user": "Curators",
-                                "sender": "SysAdmin",
-                                "record": record,
-                                "community": community,
-                                "submitter": current_user.email
-                           })
-    current_app.extensions["mail"].send(msg)
 
 
 @blueprint.route('/<string:community_id>/team/')

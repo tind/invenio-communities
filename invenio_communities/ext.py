@@ -38,8 +38,7 @@ from .permissions import (admin_permission_factory,
                           manage_permission_factory,
                           curate_permission_factory)
 from .receivers import create_oaipmh_set, destroy_oaipmh_set, \
-    inject_provisional_community, new_request
-from .signals import inclusion_request_created
+    inject_provisional_community
 
 
 class InvenioCommunities(object):
@@ -65,7 +64,6 @@ class InvenioCommunities(object):
         if app.config['COMMUNITIES_OAI_ENABLED']:
             listen(Community, 'after_insert', create_oaipmh_set)
             listen(Community, 'after_delete', destroy_oaipmh_set)
-        inclusion_request_created.connect(new_request)
 
     def init_config(self, app):
         """Initialize configuration."""
