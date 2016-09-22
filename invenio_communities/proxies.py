@@ -32,22 +32,31 @@ from werkzeug.local import LocalProxy
 from .permissions import (CommunityAdminActionNeed,
                           CommunityReadActionNeed,
                           CommunityManageActionNeed,
-                          CommunityCurateActionNeed)
+                          CommunityCurateActionNeed,
+                          CommunitySuggestActionNeed)
 
 current_permission_factory = {
     "communities-admin": LocalProxy(lambda:
-        current_app.extensions["invenio-communities"].admin_permission_factory),
+        current_app.extensions["invenio-communities"]
+        .admin_permission_factory),
     "communities-read": LocalProxy(lambda:
-        current_app.extensions["invenio-communities"].read_permission_factory),
+        current_app.extensions["invenio-communities"]
+        .read_permission_factory),
     "communities-manage": LocalProxy(lambda:
-        current_app.extensions["invenio-communities"].manage_permission_factory),
+        current_app.extensions["invenio-communities"]
+        .manage_permission_factory),
     "communities-curate": LocalProxy(lambda:
-        current_app.extensions["invenio-communities"].curate_permission_factory)
+        current_app.extensions["invenio-communities"]
+        .curate_permission_factory),
+    "communities-suggest": LocalProxy(lambda:
+        current_app.extensions["invenio-communities"]
+        .suggest_permission_factory)
 }
 
 needs = {
     "communities-admin": CommunityAdminActionNeed,
     "communities-read": CommunityReadActionNeed,
     "communities-manage": CommunityManageActionNeed,
-    "communities-curate": CommunityCurateActionNeed
+    "communities-curate": CommunityCurateActionNeed,
+    "communities-suggest": CommunitySuggestActionNeed
 }

@@ -31,7 +31,9 @@
       </div>
       <div class="col-md-4">
         <div class="well">{% include "invenio_communities/portalbox_main.html" %}</div>
-        <div class="well">{% include "invenio_communities/portalbox_upload.html" %}</div>
+        {% if permission_suggest(community).can() or permission_admin.can() %}
+          <div class="well">{% include "invenio_communities/portalbox_upload.html" %}</div>
+        {% endif %}
       </div>
     </div>
   </div>

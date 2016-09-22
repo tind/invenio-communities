@@ -54,7 +54,7 @@ blueprint = Blueprint(
 )
 
 
-def get_communities(with_deleted=False):
+def get_communities(action="communities-read", with_deleted=False):
     """
     gives all the existing communities the current user can read.
     :param with_deleted: tells if we should return the deleted communities
@@ -66,7 +66,7 @@ def get_communities(with_deleted=False):
                                                with_deleted).all()
     if not DynamicPermission(ActionNeed('admin-access')).can():
         for i, c in enumerate(communities):
-            permission = current_permission_factory["communities-read"](c)
+            permission = current_permission_factory[action](c)
             if not permission.can():
                 del communities[i]
     return communities

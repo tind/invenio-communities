@@ -28,7 +28,8 @@ from invenio_access.permissions import (DynamicPermission,
                                         ParameterizedActionNeed)
 
 
-CommunityAdminActionNeed = partial(ParameterizedActionNeed, 'communities-admin')
+CommunityAdminActionNeed = partial(ParameterizedActionNeed,
+                                   'communities-admin')
 """Action need for create or delete a community."""
 
 communities_admin = CommunityAdminActionNeed(None)
@@ -48,7 +49,8 @@ def read_permission_factory(community):
     """Factory for creating read permissions for communities."""
     return DynamicPermission(CommunityReadActionNeed(str(community.id)))
 
-CommunityManageActionNeed = partial(ParameterizedActionNeed, 'communities-manage')
+CommunityManageActionNeed = partial(ParameterizedActionNeed,
+                                    'communities-manage')
 """Action need for editing or manage team of a community."""
 
 communities_manage = CommunityManageActionNeed(None)
@@ -58,8 +60,9 @@ def manage_permission_factory(community):
     """Factory for creating manage permissions for communities."""
     return DynamicPermission(CommunityManageActionNeed(str(community.id)))
 
-CommunityCurateActionNeed = partial(ParameterizedActionNeed, 'communities-curate')
-"""Action need for editing a community."""
+CommunityCurateActionNeed = partial(ParameterizedActionNeed,
+                                    'communities-curate')
+"""Action need for curating a community."""
 
 communities_curate = CommunityCurateActionNeed(None)
 """Curate communities action need."""
@@ -67,3 +70,14 @@ communities_curate = CommunityCurateActionNeed(None)
 def curate_permission_factory(community):
     """Factory for creating curate permissions for communities."""
     return DynamicPermission(CommunityCurateActionNeed(str(community.id)))
+
+CommunitySuggestActionNeed = partial(ParameterizedActionNeed,
+                                     'communities-suggest')
+"""Action need for suggesting in a community."""
+
+communities_suggest = CommunitySuggestActionNeed(None)
+"""Suggest communities action need."""
+
+def suggest_permission_factory(community):
+    """Factory for creating suggest permissions for communities."""
+    return DynamicPermission(CommunitySuggestActionNeed(str(community.id)))
