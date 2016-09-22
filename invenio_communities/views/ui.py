@@ -121,8 +121,8 @@ def mycommunities_ctx():
     """Helper method for return ctx used by many views."""
     communities = Community.filter_communities("", "title").all()
     mycommunities = [c for c in communities
-                     if _get_permission("communities-read", c).can()
-                     or DynamicPermission(ActionNeed('admin-access')).can()]
+                     if _get_permission("communities-read", c).can() or
+                     DynamicPermission(ActionNeed('admin-access')).can()]
     return {
         "mycommunities": mycommunities,
         "permission_admin": DynamicPermission(ActionNeed('admin-access')),
@@ -147,8 +147,8 @@ def index():
 
     communities = Community.filter_communities(p, so).all()
     communities = [c for c in communities
-                   if _get_permission("communities-read", c).can()
-                   or DynamicPermission(ActionNeed('admin-access')).can()]
+                   if _get_permission("communities-read", c).can() or
+                   DynamicPermission(ActionNeed('admin-access')).can()]
     featured_community = FeaturedCommunity.get_featured_or_none()
     form = SearchForm(p=p)
     per_page = 10
@@ -421,10 +421,11 @@ def curate(community):
         db.session.commit()
         RecordIndexer().index_by_id(record.id)
         title = ""
-        if "title_statement" in record \
-            and "title" in record["title_statement"]:
+        if "title_statement" in record and \
+                "title" in record["title_statement"]:
             title = record["title_statement"]["title"]
-        message = _('The record '
+        message = _(
+            'The record '
             '"{}" has been {} the community.').format(title, action_name)
         return jsonify({'status': status, 'msg': message})
 
@@ -446,7 +447,7 @@ def suggest():
     community = None
     record = None
 
-    if not "community" in request.values:
+    if "community" not in request.values:
         return json.dumps({
             "status": "DANGER",
             "message": "Error, no {} given".format(
@@ -468,7 +469,7 @@ def suggest():
                 "{} {}".format(current_app.config["COMMUNITIES_NAME"],
                                community_id)})
 
-    if not "recpid" in request.values:
+    if "recpid" not in request.values:
         return json.dumps({
             "status": "DANGER",
             "message": "Error, no record given"})
@@ -575,9 +576,9 @@ def team_delete_user(community):
 
     :param community_id: ID of the community.
     """
-    if not request.method == 'POST':
+    if request.method != 'POST':
         abort(404)
-    if not "action_id" in request.form:
+    if "action_id" not in request.form:
         flash(u"Error: action not valid.", "danger")
     else:
         action = ActionUsers.query.get(request.form["action_id"])
@@ -625,9 +626,9 @@ def team_add_user(community):
 
     :param community_id: ID of the community.
     """
-    if not request.method == 'POST':
+    if request.method != 'POST':
         abort(404)
-    if not "action" in request.form or not "user" in request.form:
+    if "action" not in request.form or "user" not in request.form:
         flash(u"Error: action not valid.", "danger")
     else:
         user = User.query.get(request.form["user"])
