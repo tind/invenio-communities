@@ -509,7 +509,8 @@ def suggest():
             InclusionRequest.create(community=community,
                                     record=record,
                                     user=current_user)
-        except InclusionRequestObsoleteError:  # the record is already in the community
+        # the record is already in the community
+        except InclusionRequestObsoleteError:
             return json.dumps({
                 "status": "WARNING",
                 "message": "The record already exists in the {} {}.".format(
