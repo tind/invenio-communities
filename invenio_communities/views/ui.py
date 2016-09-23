@@ -129,6 +129,7 @@ def mycommunities_ctx():
         "permission_curate": partial(_get_permission, "communities-curate"),
         "permission_manage": partial(_get_permission, "communities-manage"),
         "permission_read": partial(_get_permission, "communities-read"),
+        "permission_suggest": partial(_get_permission, "communities-suggest")
     }
 
 
@@ -435,7 +436,7 @@ def curate(community):
 
 @blueprint.route('/suggest/', methods=['GET', 'POST'])
 @login_required
-# @permission_required('communities-read')  # tested later from the POST
+# @permission_required('communities-suggest')  # tested later from the POST
 def suggest():
     """Index page with uploader and list of existing depositions.
 
@@ -459,9 +460,9 @@ def suggest():
                     current_app.config["COMMUNITIES_NAME"], community_id),
               "danger")
         return redirect(url)
-    if not _get_permission("communities-read", community).can() \
+    if not _get_permission("communities-suggest", community).can() \
             and not DynamicPermission(ActionNeed('admin-access')).can():
-        flash(u"Error, you don't have permissions on the {} {}".format(
+        flash(u"Error, you don't have suggest permissions on the {} {}".format(
             current_app.config["COMMUNITIES_NAME"],
             community_id), "danger")
         return redirect(url)

@@ -139,6 +139,8 @@ setup(
             ' = invenio_communities.permissions:communities_manage',
             'communities_curate'
             ' = invenio_communities.permissions:communities_curate',
+            'communities_suggest'
+            ' = invenio_communities.permissions:communities_suggest'
         ],
         'invenio_admin.views': [
             'invenio_communities_communities = '

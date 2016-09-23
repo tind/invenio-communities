@@ -36,7 +36,8 @@ from .models import Community
 from .permissions import (admin_permission_factory,
                           read_permission_factory,
                           manage_permission_factory,
-                          curate_permission_factory)
+                          curate_permission_factory,
+                          suggest_permission_factory)
 from .receivers import create_oaipmh_set, destroy_oaipmh_set, \
     inject_provisional_community
 
@@ -96,3 +97,8 @@ class InvenioCommunities(object):
     def curate_permission_factory(self):
         """Load default permission factory."""
         return curate_permission_factory
+
+    @cached_property
+    def suggest_permission_factory(self):
+        """Load default permission factory."""
+        return suggest_permission_factory
