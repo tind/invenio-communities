@@ -446,14 +446,15 @@ def suggest():
     """
     community = None
     record = None
+    values = request.get_json() or request.values
 
-    if "community" not in request.values:
+    if "community" not in values:
         return json.dumps({
             "status": "DANGER",
             "message": "Error, no {} given".format(
                 current_app.config["COMMUNITIES_NAME"])})
 
-    community_id = request.values["community"]
+    community_id = values["community"]
     community = Community.get(community_id)
     if not community:
         return json.dumps({
@@ -466,15 +467,15 @@ def suggest():
         return json.dumps({
             "status": "DANGER",
             "message": "Error, you don't have suggest permissions on the " +
-                "{} {}".format(current_app.config["COMMUNITIES_NAME"],
-                               community_id)})
+                       "{} {}".format(current_app.config["COMMUNITIES_NAME"],
+                                      community_id)})
 
-    if "recpid" not in request.values:
+    if "recpid" not in values:
         return json.dumps({
             "status": "DANGER",
             "message": "Error, no record given"})
 
-    recid = request.values["recpid"]
+    recid = values["recpid"]
     resolver = Resolver(
             pid_type='recid', object_type='rec', getter=Record.get_record)
     try:
@@ -491,19 +492,19 @@ def suggest():
             community.add_record(record)
         except:  # the record is already in the community
             return json.dumps({
-            "status": "WARNING",
-            "message": "The record already exists in the {} {}.".format(
-                current_app.config["COMMUNITIES_NAME"],
-                community.title)})
+                "status": "WARNING",
+                "message": "The record already exists in the {} {}.".format(
+                    current_app.config["COMMUNITIES_NAME"],
+                    community.title)})
         else:
             record.commit()
             db.session.commit()
             RecordIndexer().index_by_id(record.id)
             return json.dumps({
-            "status": "SUCCESS",
-            "message": "The record has been added to the {} {}.".format(
-                current_app.config["COMMUNITIES_NAME"],
-                community.title)})
+                "status": "SUCCESS",
+                "message": "The record has been added to the {} {}.".format(
+                    current_app.config["COMMUNITIES_NAME"],
+                    community.title)})
     # otherwise we only suggest it and it will appear in the curate list
     else:
         try:
@@ -520,7 +521,7 @@ def suggest():
         except InclusionRequestExistsError:
             return json.dumps({
                 "status": "WARNING",
-                "message": "The record has already been suggested " +
+                "message": "The record has already been suggested "
                            "to the {} {}.".format(
                                current_app.config["COMMUNITIES_NAME"],
                                community.title)})
@@ -552,9 +553,9 @@ def team_management(community):
     for action in permissions:
         # 12 = len("communities-")
         a = Action(action[12:].replace("-", " ").capitalize(),
-                     action,
-                     ActionUsers.query_by_action(
-                        _get_needs(action, community.id)).all())
+                   action,
+                   ActionUsers.query_by_action(
+                       _get_needs(action, community.id)).all())
         actions.append(a)
     ctx = mycommunities_ctx()
     ctx.update({
