@@ -121,8 +121,8 @@ def mycommunities_ctx():
     """Helper method for return ctx used by many views."""
     communities = Community.filter_communities("", "title").all()
     mycommunities = [c for c in communities
-                     if _get_permission("communities-read", c).can()
-                     or DynamicPermission(ActionNeed('admin-access')).can()]
+                     if _get_permission("communities-read", c).can() or
+                     DynamicPermission(ActionNeed('admin-access')).can()]
     return {
         "mycommunities": mycommunities,
         "permission_admin": DynamicPermission(ActionNeed('admin-access')),
@@ -147,8 +147,8 @@ def index():
 
     communities = Community.filter_communities(p, so).all()
     communities = [c for c in communities
-                   if _get_permission("communities-read", c).can()
-                   or DynamicPermission(ActionNeed('admin-access')).can()]
+                   if _get_permission("communities-read", c).can() or
+                   DynamicPermission(ActionNeed('admin-access')).can()]
     featured_community = FeaturedCommunity.get_featured_or_none()
     form = SearchForm(p=p)
     per_page = 10
@@ -421,10 +421,11 @@ def curate(community):
         db.session.commit()
         RecordIndexer().index_by_id(record.id)
         title = ""
-        if "title_statement" in record \
-            and "title" in record["title_statement"]:
+        if "title_statement" in record and \
+                "title" in record["title_statement"]:
             title = record["title_statement"]["title"]
-        message = _('The record '
+        message = _(
+            'The record '
             '"{}" has been {} the community.').format(title, action_name)
         return jsonify({'status': status, 'msg': message})
 
@@ -445,14 +446,15 @@ def suggest():
     """
     community = None
     record = None
+    values = request.get_json() or request.values
 
-    if not "community" in request.values:
+    if "community" not in values:
         return json.dumps({
             "status": "DANGER",
             "message": "Error, no {} given".format(
                 current_app.config["COMMUNITIES_NAME"])})
 
-    community_id = request.values["community"]
+    community_id = values["community"]
     community = Community.get(community_id)
     if not community:
         return json.dumps({
@@ -465,15 +467,15 @@ def suggest():
         return json.dumps({
             "status": "DANGER",
             "message": "Error, you don't have suggest permissions on the " +
-                "{} {}".format(current_app.config["COMMUNITIES_NAME"],
-                               community_id)})
+                       "{} {}".format(current_app.config["COMMUNITIES_NAME"],
+                                      community_id)})
 
-    if not "recpid" in request.values:
+    if "recpid" not in values:
         return json.dumps({
             "status": "DANGER",
             "message": "Error, no record given"})
 
-    recid = request.values["recpid"]
+    recid = values["recpid"]
     resolver = Resolver(
             pid_type='recid', object_type='rec', getter=Record.get_record)
     try:
@@ -490,26 +492,27 @@ def suggest():
             community.add_record(record)
         except:  # the record is already in the community
             return json.dumps({
-            "status": "WARNING",
-            "message": "The record already exists in the {} {}.".format(
-                current_app.config["COMMUNITIES_NAME"],
-                community.title)})
+                "status": "WARNING",
+                "message": "The record already exists in the {} {}.".format(
+                    current_app.config["COMMUNITIES_NAME"],
+                    community.title)})
         else:
             record.commit()
             db.session.commit()
             RecordIndexer().index_by_id(record.id)
             return json.dumps({
-            "status": "SUCCESS",
-            "message": "The record has been added to the {} {}.".format(
-                current_app.config["COMMUNITIES_NAME"],
-                community.title)})
+                "status": "SUCCESS",
+                "message": "The record has been added to the {} {}.".format(
+                    current_app.config["COMMUNITIES_NAME"],
+                    community.title)})
     # otherwise we only suggest it and it will appear in the curate list
     else:
         try:
             InclusionRequest.create(community=community,
                                     record=record,
                                     user=current_user)
-        except InclusionRequestObsoleteError:  # the record is already in the community
+        # the record is already in the community
+        except InclusionRequestObsoleteError:
             return json.dumps({
                 "status": "WARNING",
                 "message": "The record already exists in the {} {}.".format(
@@ -518,7 +521,7 @@ def suggest():
         except InclusionRequestExistsError:
             return json.dumps({
                 "status": "WARNING",
-                "message": "The record has already been suggested " +
+                "message": "The record has already been suggested "
                            "to the {} {}.".format(
                                current_app.config["COMMUNITIES_NAME"],
                                community.title)})
@@ -550,9 +553,9 @@ def team_management(community):
     for action in permissions:
         # 12 = len("communities-")
         a = Action(action[12:].replace("-", " ").capitalize(),
-                     action,
-                     ActionUsers.query_by_action(
-                        _get_needs(action, community.id)).all())
+                   action,
+                   ActionUsers.query_by_action(
+                       _get_needs(action, community.id)).all())
         actions.append(a)
     ctx = mycommunities_ctx()
     ctx.update({
@@ -574,9 +577,9 @@ def team_delete_user(community):
 
     :param community_id: ID of the community.
     """
-    if not request.method == 'POST':
+    if request.method != 'POST':
         abort(404)
-    if not "action_id" in request.form:
+    if "action_id" not in request.form:
         flash(u"Error: action not valid.", "danger")
     else:
         action = ActionUsers.query.get(request.form["action_id"])
@@ -624,9 +627,9 @@ def team_add_user(community):
 
     :param community_id: ID of the community.
     """
-    if not request.method == 'POST':
+    if request.method != 'POST':
         abort(404)
-    if not "action" in request.form or not "user" in request.form:
+    if "action" not in request.form or "user" not in request.form:
         flash(u"Error: action not valid.", "danger")
     else:
         user = User.query.get(request.form["user"])

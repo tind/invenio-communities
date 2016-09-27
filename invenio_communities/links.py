@@ -62,6 +62,7 @@ def default_links_pagination_factory(page, urlkwargs):
 
     return links
 
+
 def default_links_facets_factory():
     """Factory for record links generation."""
     return dict(

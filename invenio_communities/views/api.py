@@ -225,11 +225,9 @@ class CommunitiesFacets(ContentNegotiatedMethodView):
             **kwargs
         )
 
-
     def facet_search_factory(self, search):
         search, urlkwargs = default_facets_factory(search, 'records')
         return search, urlkwargs
-
 
     def get(self):
         search = RecordsSearch().params(version=True)

@@ -35,6 +35,7 @@ CommunityAdminActionNeed = partial(ParameterizedActionNeed,
 communities_admin = CommunityAdminActionNeed(None)
 """Admin communities action need."""
 
+
 def admin_permission_factory(community=""):
     """Factory for creating admin permissions for communities."""
     return DynamicPermission(CommunityAdminActionNeed(None))
@@ -44,6 +45,7 @@ CommunityReadActionNeed = partial(ParameterizedActionNeed, 'communities-read')
 
 communities_read = CommunityReadActionNeed(None)
 """Read communities action need."""
+
 
 def read_permission_factory(community):
     """Factory for creating read permissions for communities."""
@@ -56,6 +58,7 @@ CommunityManageActionNeed = partial(ParameterizedActionNeed,
 communities_manage = CommunityManageActionNeed(None)
 """Manage communities action need."""
 
+
 def manage_permission_factory(community):
     """Factory for creating manage permissions for communities."""
     return DynamicPermission(CommunityManageActionNeed(str(community.id)))
@@ -67,6 +70,7 @@ CommunityCurateActionNeed = partial(ParameterizedActionNeed,
 communities_curate = CommunityCurateActionNeed(None)
 """Curate communities action need."""
 
+
 def curate_permission_factory(community):
     """Factory for creating curate permissions for communities."""
     return DynamicPermission(CommunityCurateActionNeed(str(community.id)))
@@ -77,6 +81,7 @@ CommunitySuggestActionNeed = partial(ParameterizedActionNeed,
 
 communities_suggest = CommunitySuggestActionNeed(None)
 """Suggest communities action need."""
+
 
 def suggest_permission_factory(community):
     """Factory for creating suggest permissions for communities."""

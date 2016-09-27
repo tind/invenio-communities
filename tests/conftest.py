@@ -30,13 +30,17 @@ from __future__ import absolute_import, print_function
 import os
 import shutil
 import tempfile
-
 import pytest
+
 from flask import Flask
 from flask_babelex import Babel
 from flask_celeryext import FlaskCeleryExt
 from flask_cli import FlaskCLI
 from flask_menu import Menu
+
+from sqlalchemy_utils.functions import create_database, database_exists
+
+from invenio_access import InvenioAccess
 from invenio_accounts import InvenioAccounts
 from invenio_accounts.testutils import create_test_user
 from invenio_assets import InvenioAssets
@@ -47,7 +51,6 @@ from invenio_mail import InvenioMail
 from invenio_oaiserver import InvenioOAIServer
 from invenio_records import InvenioRecords
 from invenio_search import InvenioSearch
-from sqlalchemy_utils.functions import create_database, database_exists
 
 from invenio_communities import InvenioCommunities
 from invenio_communities.models import Community
@@ -66,12 +69,12 @@ def app(request):
         CELERY_CACHE_BACKEND="memory",
         CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
         CELERY_RESULT_BACKEND="cache",
+        INDEXER_DEFAULT_INDEX='records-record-v1.0.1',
         SECRET_KEY='CHANGE_ME',
         SECURITY_PASSWORD_SALT='CHANGE_ME_ALSO',
         SQLALCHEMY_DATABASE_URI=os.environ.get(
             'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'),
-        SEARCH_ELASTIC_HOSTS=os.environ.get(
-            'SEARCH_ELASTIC_HOSTS', None),
+        SEARCH_ELASTIC_HOSTS='elasticsearch',
         SQLALCHEMY_TRACK_MODIFICATIONS=True,
         OAISERVER_REGISTER_RECORD_SIGNALS=True,
         OAISERVER_REGISTER_SET_SIGNALS=False,
@@ -85,6 +88,7 @@ def app(request):
     Menu(app)
     Babel(app)
     InvenioDB(app)
+    InvenioAccess(app)
     InvenioAccounts(app)
     InvenioAssets(app)
     InvenioSearch(app)
