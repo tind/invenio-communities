@@ -26,6 +26,7 @@
 
 
 import copy
+import json
 from collections import namedtuple
 from functools import partial, wraps
 
@@ -444,53 +445,64 @@ def suggest():
     """
     community = None
     record = None
-    url = request.referrer
 
-    if "url" in request.values and request.values["url"]:
-        url = request.values["url"]
     if not "community" in request.values:
-        flash(u"Error, no {} given".format(
-                        current_app.config["COMMUNITIES_NAME"]),
-              "danger")
-        return redirect(url)
+        return json.dumps({
+            "status": "DANGER",
+            "message": "Error, no {} given".format(
+                current_app.config["COMMUNITIES_NAME"])})
+
     community_id = request.values["community"]
     community = Community.get(community_id)
     if not community:
-        flash(u"Error, unknown {} {}".format(
-                    current_app.config["COMMUNITIES_NAME"], community_id),
-              "danger")
-        return redirect(url)
+        return json.dumps({
+            "status": "DANGER",
+            "message": "Error, unknown {} {}".format(
+                current_app.config["COMMUNITIES_NAME"], community_id)})
+
     if not _get_permission("communities-suggest", community).can() \
             and not DynamicPermission(ActionNeed('admin-access')).can():
-        flash(u"Error, you don't have suggest permissions on the {} {}".format(
-            current_app.config["COMMUNITIES_NAME"],
-            community_id), "danger")
-        return redirect(url)
+        return json.dumps({
+            "status": "DANGER",
+            "message": "Error, you don't have suggest permissions on the " +
+                "{} {}".format(current_app.config["COMMUNITIES_NAME"],
+                               community_id)})
+
     if not "recpid" in request.values:
-        flash(u"Error, no record given", "danger")
-        return redirect(url)
+        return json.dumps({
+            "status": "DANGER",
+            "message": "Error, no record given"})
+
     recid = request.values["recpid"]
     resolver = Resolver(
             pid_type='recid', object_type='rec', getter=Record.get_record)
     try:
         pid, record = resolver.resolve(recid)
     except Exception:
-        flash(u"Error, unkown record {}".format(recid), "danger")
-        return redirect(url)
+        return json.dumps({
+            "status": "DANGER",
+            "message": "Error, unknown record {}".format(recid)})
+
     # if the user has the curate permission on this community,
     # we automatically add the record
     if _get_permission("communities-curate", community).can():
         try:
             community.add_record(record)
         except:  # the record is already in the community
-            flash(u"The record already exists in the {} {}.".format(
+            return json.dumps({
+            "status": "WARNING",
+            "message": "The record already exists in the {} {}.".format(
                 current_app.config["COMMUNITIES_NAME"],
-                community.title), "warning")
+                community.title)})
         else:
             record.commit()
-            flash(u"The record has been added to the {} {}.".format(
+            db.session.commit()
+            RecordIndexer().index_by_id(record.id)
+            return json.dumps({
+            "status": "SUCCESS",
+            "message": "The record has been added to the {} {}.".format(
                 current_app.config["COMMUNITIES_NAME"],
-                community.title))
+                community.title)})
     # otherwise we only suggest it and it will appear in the curate list
     else:
         try:
@@ -498,22 +510,28 @@ def suggest():
                                     record=record,
                                     user=current_user)
         except InclusionRequestObsoleteError:  # the record is already in the community
-            flash(u"The record already exists in the {} {}.".format(
-            current_app.config["COMMUNITIES_NAME"],
-            community.title), "warning")
+            return json.dumps({
+                "status": "WARNING",
+                "message": "The record already exists in the {} {}.".format(
+                    current_app.config["COMMUNITIES_NAME"],
+                    community.title)})
         except InclusionRequestExistsError:
-            flash(u"The record has already been suggested "
-                  u"to the {} {}.".format(
-                        current_app.config["COMMUNITIES_NAME"],
-                        community.title), "warning")
-        else:
+            return json.dumps({
+                "status": "WARNING",
+                "message": "The record has already been suggested " +
+                           "to the {} {}.".format(
+                               current_app.config["COMMUNITIES_NAME"],
+                               community.title)})
             flash(u"The record has been suggested "
                   u"to the {} {}.".format(
                                 current_app.config["COMMUNITIES_NAME"],
                                 community.title))
     db.session.commit()
     RecordIndexer().index_by_id(record.id)
-    return redirect(url)
+    return json.dumps({
+            "status": "INFO",
+            "message": "The record has been suggested to the {} {}.".format(
+                current_app.config["COMMUNITIES_NAME"], community.title)})
 
 
 @blueprint.route('/<string:community_id>/team/')
