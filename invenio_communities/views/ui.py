@@ -185,7 +185,8 @@ def index():
 @permission_required('communities-read')
 def detail(community):
     """Index page with uploader and list of existing depositions."""
-    return generic_item(community, "invenio_communities/detail.html")
+    return generic_item(community,
+                        current_app.config['COMMUNITIES_DETAIL_TEMPLATE'])
 
 
 @blueprint.route('/<string:community_id>/search', methods=['GET'])
