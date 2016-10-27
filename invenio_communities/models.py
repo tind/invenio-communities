@@ -293,11 +293,16 @@ class Community(db.Model, Timestamp):
         except:  # the record was not in the pending area
             pass
         key = current_app.config['COMMUNITIES_RECORD_KEY']
+        access_key = '_access'
         record.setdefault(key, [])
+        record.setdefault(access_key, {'read': []})
 
         assert self.id not in record[key]
         record[key].append(self.id)
         record[key] = sorted(record[key])
+
+        if self.id not in record[access_key]['read']:
+            record[access_key]['read'].append(self.id)
 
         if current_app.config["COMMUNITIES_OAI_ENABLED"]:
             from invenio_oaiserver.models import OAISet
@@ -311,10 +316,19 @@ class Community(db.Model, Timestamp):
         :type record: `invenio_records.api.Record`
         """
         key = current_app.config['COMMUNITIES_RECORD_KEY']
+        access_key = '_access'
 
         assert self.id in record.get(key, [])
-
         record[key] = [c for c in record[key] if c != self.id]
+
+        read = record.get(access_key, {'read': []})
+        if self.id in read['read']:
+            read.remove(self.id)
+
+        if not record[access_key]['read']:
+            del(record[access_key]['read'])
+        if not record[access_key]:
+            del(record[access_key])
 
         if current_app.config["COMMUNITIES_OAI_ENABLED"]:
             from invenio_oaiserver.models import OAISet
