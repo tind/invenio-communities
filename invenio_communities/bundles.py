@@ -85,7 +85,7 @@ ckeditor = Bundle(
 
 css = NpmBundle(
     'scss/invenio_communities/communities.scss',
-    filters='scss, cleancss',
+    filters='node-scss, cleancss',
     output='gen/communities.%(version)s.css',
     npm={
         'ckeditor': '~4.5.8',
