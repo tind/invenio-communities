@@ -26,16 +26,15 @@
 
 from __future__ import absolute_import, print_function
 
-from invenio_records.api import Record
-
 from invenio_communities.models import InclusionRequest
+from tind.tests.utils import get_community_by_id, get_record_by_pid
 
 
-def test_community_delete_task(app, db, communities):
+def test_community_delete_task(app, db, communities, records):
     """Test the community deletion task."""
-    (comm1, comm2, comm3) = communities
+    comm1 = get_community_by_id('comm1')
+    pid, rec1 = get_record_by_pid('recid', 1000003)
     communities_key = app.config["COMMUNITIES_RECORD_KEY"]
-    rec1 = Record.create({'title': 'Foobar'})
     InclusionRequest.create(community=comm1, record=rec1, notify=False)
 
     assert InclusionRequest.get(comm1.id, rec1.id)

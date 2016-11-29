@@ -27,10 +27,10 @@
 
 from __future__ import absolute_import, print_function
 
-from invenio_records.api import Record
-
 from invenio_communities.models import InclusionRequest
 from invenio_communities.utils import render_template_to_string
+
+from tind.tests.utils import get_community_by_id, get_record_by_pid, get_user_by_email
 
 
 def test_template_formatting_from_string(app):
@@ -41,17 +41,15 @@ def test_template_formatting_from_string(app):
         assert out == 'foobar: spam'
 
 
-def test_email_formatting(app, db, communities, user):
+def test_email_formatting(app, db, communities, users, records):
     """Test formatting of the email message with the default template."""
     with app.extensions['mail'].record_messages() as outbox:
-        (comm1, comm2, comm3) = communities
-        rec1 = Record.create({
-            'title': 'Foobar and Bazbar',
-            'description': 'On Foobar, Bazbar and <b>more</b>.'
-        })
+        comm1 = get_community_by_id('comm1')
+        pid, rec1 = get_record_by_pid('recid', 1000007)
+        test = get_user_by_email('test@tind.io')
 
         # Request
-        InclusionRequest.create(community=comm1, record=rec1, user=user)
+        InclusionRequest.create(community=comm1, record=rec1, user=test)
 
         # Check emails being sent
         # assert len(outbox) == 1

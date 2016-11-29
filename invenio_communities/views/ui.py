@@ -509,6 +509,7 @@ def suggest():
     # otherwise we only suggest it and it will appear in the curate list
     else:
         try:
+            print(current_user)
             InclusionRequest.create(community=community,
                                     record=record,
                                     user=current_user)

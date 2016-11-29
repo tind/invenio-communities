@@ -36,13 +36,16 @@ from flask_cli import FlaskCLI
 from invenio_db import db as db_
 from invenio_oaiserver.models import OAISet
 from invenio_records.api import Record
-
+from flask_security import url_for_security
 from invenio_communities import InvenioCommunities
 from invenio_communities.errors import CommunitiesError, \
     InclusionRequestExistsError, InclusionRequestMissingError, \
     InclusionRequestObsoleteError
 from invenio_communities.models import Community, FeaturedCommunity, \
     InclusionRequest
+
+
+from tind.tests.utils import get_community_by_id, get_record_by_pid, get_user_by_email
 
 try:
     from werkzeug.urls import url_parse
@@ -84,13 +87,16 @@ def test_init():
     assert 'invenio-communities' in app.extensions
 
 
-def test_model_init(app, db, communities):
+def test_model_init(app, db, communities, records):
     """Test basic model initialization and actions."""
-    (comm1, comm2, comm3) = communities
+    comm1 = get_community_by_id('comm1')
+    comm2 = get_community_by_id('comm2')
+    comm3 = get_community_by_id('oth3')
     communities_key = app.config["COMMUNITIES_RECORD_KEY"]
+
     # Create a record and accept it into the community by creating an
     # InclusionRequest and then calling the accept action
-    rec1 = Record.create({'title': 'Foobar'})
+    pid, rec1 = get_record_by_pid('recid', 1000003)
     InclusionRequest.create(community=comm1, record=rec1)
     assert InclusionRequest.query.count() == 1
     comm1.accept_record(rec1)
@@ -98,7 +104,7 @@ def test_model_init(app, db, communities):
     assert InclusionRequest.query.count() == 0
 
     # Likewise, reject a record from the community
-    rec2 = Record.create({'title': 'Bazbar'})
+    pid, rec2 = get_record_by_pid('recid', 1000004)
     InclusionRequest.create(community=comm1, record=rec2)
     assert InclusionRequest.query.count() == 1
     comm1.reject_record(rec2)
@@ -114,7 +120,7 @@ def test_model_init(app, db, communities):
     assert comm2.id in rec1[communities_key]
 
     # Accept/reject a record to/from a community without inclusion request
-    rec3 = Record.create({'title': 'Spam'})
+    pid, rec3 = get_record_by_pid('recid', 1000005)
     pytest.raises(InclusionRequestMissingError, comm1.accept_record, rec3)
     pytest.raises(InclusionRequestMissingError, comm1.reject_record, rec3)
 
@@ -131,22 +137,23 @@ def test_model_init(app, db, communities):
                   community=comm1, record=rec1)
 
 
-def test_email_notification(app, db, communities, user):
+def test_email_notification(app, db, communities, users, records):
     """Test mail notification sending for community request."""
     # Mock the send method of the Flask-Mail extension
     with app.extensions['mail'].record_messages() as outbox:
-        (comm1, comm2, comm3) = communities
+        test = get_user_by_email('test@tind.io')
+        comm1 = get_community_by_id('comm1')
         # Create a record and accept it into the community by creating an
         # InclusionRequest and then calling the accept action
-        rec1 = Record.create({
-            'title': 'Foobar', 'description': 'Baz bar.'})
-        InclusionRequest.create(community=comm1, record=rec1, user=user)
+        pid, rec1 = get_record_by_pid('recid', 1000006)
+        InclusionRequest.create(community=comm1, record=rec1, user=test)
         # assert len(outbox) == 1
 
 
 def test_model_featured_community(app, db, communities):
     """Test the featured community model and actions."""
-    (comm1, comm2, comm3) = communities
+    comm1 = get_community_by_id('comm1')
+    comm2 = get_community_by_id('comm2')
     t1 = datetime.now()
 
     # Create two community featurings starting at different times
@@ -166,9 +173,9 @@ def test_model_featured_community(app, db, communities):
 
 def test_oaipmh_sets(app, db, communities):
     """Test the OAI-PMH Sets creation."""
-    (comm1, comm2, comm3) = communities
+    comm1 = get_community_by_id('comm1')
 
-    assert OAISet.query.count() == 3
+    assert OAISet.query.count() == len(communities)
     oai_set1 = OAISet.query.first()
     assert oai_set1.spec == 'user-comm1'
     assert oai_set1.name == 'Title1'
@@ -177,8 +184,8 @@ def test_oaipmh_sets(app, db, communities):
     # Delete the community and make sure the set is also deleted
     db_.session.delete(comm1)
     db_.session.commit()
-    assert Community.query.count() == 2
-    assert OAISet.query.count() == 2
+    assert Community.query.count() == len(communities) - 1
+    assert OAISet.query.count() == len(communities) - 1
 
 
 def test_communities_rest_all_communities(app, db, communities):
@@ -186,15 +193,17 @@ def test_communities_rest_all_communities(app, db, communities):
     with app.test_client() as client:
         response = client.get('/api/communities/')
         response_data = get_json(response)
-        assert response_data['hits']['total'] == 3
-        assert len(response_data['hits']['hits']) == 3
+        assert response_data['hits']['total'] == len(communities)
+        assert len(response_data['hits']['hits']) == len(communities)
 
         assert response_data['hits']['hits'][0]['id'] == 'comm1'
 
 
 def test_community_delete(app, db, communities):
     """Test deletion of communities."""
-    (comm1, comm2, comm3) = communities
+    comm1 = get_community_by_id('comm1')
+    comm2 = get_community_by_id('comm2')
+
     comm1.delete()
     assert comm1.is_deleted is True
     comm1.undelete()
@@ -219,7 +228,7 @@ def test_communities_rest_all_communities_query_and_sort(app, db, communities):
         assert response_data['hits']['hits'][1]['id'] == 'comm1'
 
 
-def test_communities_rest_pagination(app, db, communities):
+def test_communities_rest_pagination(app, db, communities, users):
     """Test the OAI-PMH Sets creation."""
     def parse_path(app, path):
         """Split the path in base and real relative url.
@@ -246,7 +255,13 @@ def test_communities_rest_pagination(app, db, communities):
             'page={0}'.format(page),
             'size={0}'.format(size)]) for h in response.headers)
 
+    user = get_user_by_email('admin@tind.io')
+    login_url = url_for_security('login')
     with app.test_client() as client:
+        res = client.post(login_url,
+                          data={'email': user.email,
+                                'password': user.password},
+                          follow_redirects=True)
         response = client.get('/api/communities/?size=1')
         assert_header_links(response, 'self', 1, 1)
         assert_header_links(response, 'next', 2, 1)
@@ -256,6 +271,7 @@ def test_communities_rest_pagination(app, db, communities):
         assert len(data['hits']['hits']) == 1
 
         # Assert that self gives back the same result
+
         response = client.get(**parse_path(app, data['links']['self']))
         assert data == get_json(response)
         assert 'prev' not in data['links']
@@ -277,6 +293,11 @@ def test_communities_rest_pagination(app, db, communities):
         assert_header_links(response, 'self', 3, 1)
         assert_header_links(response, 'prev', 2, 1)
 
+        total = len(communities)
+        size = str((total+1)//2)
+        page = str(2)
+        response = client.get(
+            '/api/communities/?size={0}&page={1}'.format(size, page))
         data = get_json(response)
         assert 'prev' in data['links']
         assert 'next' not in data['links']
@@ -284,26 +305,38 @@ def test_communities_rest_pagination(app, db, communities):
 
 def test_communities_rest_get_details(app, db, communities):
     """Test the OAI-PMH Sets creation."""
+    user = get_user_by_email('admin@tind.io')
+    login_url = url_for_security('login')
     with app.test_client() as client:
+        res = client.post(login_url,
+                          data={'email': user.email,
+                                'password': user.password},
+                          follow_redirects=True)
         response = client.get('/api/communities/comm1')
         assert_community_serialization(
-                get_json(response),
-                description='Description1',
-                title='Title1',
-                id='comm1',
-                page='',
-                curation_policy='',
-                last_record_accepted='2000-01-01T00:00:00+00:00',
-                links={
-                    'self': 'http://inveniosoftware.org/api/communities/comm1',
-                    'html': 'http://inveniosoftware.org/communities/comm1/',
-                },
+            get_json(response),
+            description='Description1',
+            title='Title1',
+            id='comm1',
+            page='',
+            curation_policy='',
+            last_record_accepted='2000-01-01T00:00:00+00:00',
+            links={
+                'self': 'http://127.0.0.1/api/communities/comm1',
+                'html': 'http://127.0.0.1/communities/comm1/',
+            },
         )
 
 
 def test_communities_rest_etag(app, communities):
     """Test the OAI-PMH Sets creation."""
+    user = get_user_by_email('admin@tind.io')
+    login_url = url_for_security('login')
     with app.test_client() as client:
+        res = client.post(login_url,
+                          data={'email': user.email,
+                                'password': user.password},
+                          follow_redirects=True)
         # The first response should return the data with result code 200
         response = client.get('/api/communities/comm1')
         assert response.status_code == 200

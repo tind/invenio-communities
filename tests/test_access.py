@@ -28,89 +28,43 @@
 from __future__ import absolute_import, print_function
 
 import json
-from uuid import uuid4
+from flask_security import url_for_security
+# from invenio_access.models import ActionUsers
 
-from invenio_accounts.models import User
-from invenio_access.models import ActionUsers
-from invenio_pidstore.providers.recordid import RecordIdProvider
-from invenio_records.api import Record
-
-from invenio_communities.models import Community
+from tind.tests.utils import get_record_by_pid, get_user_by_email
 
 
-def create_users(db):
-    """Create 4 users for the tests."""
-    admin = User(active=True,
-                 email='admin@inveniosoftware.org',
-                 password="duck")
-    owner = User(active=True,
-                 email='owner@inveniosoftware.org',
-                 password="face")
-    reader = User(active=True,
-                  email='reader@inveniosoftware.org',
-                  password="is")
-    suggester = User(active=True,
-                     email='suggester@inveniosoftware.org',
-                     password="really")
-    curator = User(active=True,
-                   email='curator@inveniosoftware.org',
-                   password="so")
-    none = User(active=True,
-                email='none@inveniosoftware.org',
-                password="bad")
-    db.session.add_all([admin, owner, reader, suggester, curator, none])
-    db.session.commit()
-    return admin, owner, reader, suggester, curator, none
-
-
-def add_action_to_users(db, users, **kwargs):
-    """Adds the action to the user."""
-    for user in users:
-        db.session.add(ActionUsers(user=user, **kwargs))
-    db.session.commit()
-
-
-def create_record():
-    """Creates a record and returns (id, pid)."""
-    recid = uuid4()
-    pid = RecordIdProvider.create(object_type='rec',
-                                  object_uuid=recid).pid.pid_value
-    data = {
-        "pid_value": pid,
-        "control_number": pid
-    }
-    record = Record.create(data, id_=recid)
-    return recid, pid
-
-
-def test_suggest(app, db):
+def test_suggest(app, db, users, records, communities):
     """Test for get_communities()"""
-    admin, owner, reader, suggester, curator, none = create_users(db)
-    c1 = Community.create(community_id="c1", user_id=owner.id)
-    recid, pid = create_record()
+    admin = get_user_by_email('admin@tind.io')
+    owner = get_user_by_email('owner@tind.io')
+    reader = get_user_by_email('reader@tind.io')
+    suggester = get_user_by_email('suggester@tind.io')
+    curator = get_user_by_email('curator@tind.io')
+    none = get_user_by_email('none@tind.io')
 
-    add_action_to_users(db, [admin], action="admin-access")
-    add_action_to_users(db, [owner], action="communities-manage",
-                        argument="c1")
-    add_action_to_users(db, [owner, reader], action="communities-read",
-                        argument="c1")
-    add_action_to_users(db, [owner, suggester], action="communities-suggest",
-                        argument="c1")
-    add_action_to_users(db, [owner, curator], action="communities-curate",
-                        argument="c1")
+    pid, public = get_record_by_pid('recid', 1000001)
 
     def test_user(user, status):
+        login_url = url_for_security('login')
         with app.test_client() as c:
-            with c.session_transaction() as sess:
-                sess['user_id'] = user.id
-                sess['_fresh'] = True
+            res = c.post(login_url,
+                         data={'email': user.email,
+                               'password': user.password},
+                         follow_redirects=True)
+            # with c.session_transaction() as sess:
+            #     sess['user_id'] = user.id
+            #     sess['_fresh'] = True
             res = c.post("/communities/suggest/", **{
                 "content_type": "application/json",
                 "data": json.dumps({
                     "community": "c1",
-                    "recpid": str(pid)
+                    "recpid": str(pid.pid_value)
                 })
             })
+            print(json.loads(res.get_data(as_text=True))["message"])
+            print(pid)
+            print(user.email)
             assert json.loads(res.get_data(as_text=True))["status"] == status
 
     test_user(none, "DANGER")  # not allowed
